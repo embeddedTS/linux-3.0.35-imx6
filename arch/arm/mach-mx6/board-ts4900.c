@@ -547,10 +547,10 @@ static struct ipuv3_fb_platform_data ts4900_fb_data[] = {
 	{
 	.disp_dev = "lcd",
 	.interface_pix_fmt = IPU_PIX_FMT_RGB24,
-	.mode_str = "OKAYA-WVGA,if=RGB24,bpp=32", 
+	.mode_str = "800x480M-16@60",
 	.default_bpp = 24,
-	.int_clk = true,
-	.late_init = false,				
+	.int_clk = false,
+	.late_init = false,
 	},{
 	.disp_dev = "lcd",
 	.interface_pix_fmt = IPU_PIX_FMT_RGB24,
