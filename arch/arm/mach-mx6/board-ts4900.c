@@ -25,6 +25,7 @@
 #include <linux/fec.h>
 #include <linux/memblock.h>
 #include <linux/gpio.h>
+#include <linux/ion.h>
 #include <linux/etherdevice.h>
 #include <linux/regulator/anatop-regulator.h>
 #include <linux/regulator/consumer.h>
@@ -535,7 +536,7 @@ static const struct flexcan_platform_data
 	mx6q_ts4900_flexcan0_pdata __initconst = {};
 
 static struct viv_gpu_platform_data imx6q_gpu_pdata __initdata = {
-	.reserved_mem_size = SZ_128M,
+	.reserved_mem_size = SZ_128M + SZ_64M - SZ_16M,
 };
 
 static struct imx_asrc_platform_data imx_asrc_data = {
@@ -547,16 +548,16 @@ static struct ipuv3_fb_platform_data ts4900_fb_data[] = {
 	{
 	.disp_dev = "lcd",
 	.interface_pix_fmt = IPU_PIX_FMT_RGB24,
-	.mode_str = "800x480M-16@60",
+	.mode_str = "OKAYA-WVGA",
 	.default_bpp = 24,
-	.int_clk = false,
+	.int_clk = true,
 	.late_init = false,
 	},{
 	.disp_dev = "lcd",
 	.interface_pix_fmt = IPU_PIX_FMT_RGB24,
 	.mode_str = "800x600M-16@60",
 	.default_bpp = 24,
-	.int_clk = false,
+	.int_clk = true,
 	.late_init = false,
 	},
 };
@@ -570,10 +571,25 @@ static struct fsl_mxc_lcd_platform_data lcdif_data = {
 static struct imx_ipuv3_platform_data ipu_data[] = {
 	{
 	.rev = 4,
-	.csi_clk[0] = "clko_clk",
-	.bypass_reset = false,
+	.csi_clk[0] = "clko2_clk",
+	}, {
+	.rev = 4,
+	.csi_clk[0] = "clko2_clk",
 	},
 };
+
+
+static struct ion_platform_data imx_ion_data = {
+	.nr = 1,
+	.heaps = {
+		{
+		.type = ION_HEAP_TYPE_CARVEOUT,
+		.name = "vpu_ion",
+		.size = SZ_16M,
+		},
+	},
+};
+
 
 /*
 static int ads7846_get_pendown_state(void)
@@ -834,6 +850,25 @@ static int imx6q_init_sgtl5000audio(void)
 	return 0;
 }
 
+#ifdef CONFIG_ANDROID_RAM_CONSOLE
+static struct resource ram_console_resource = {
+	.name = "android ram console",
+	.flags = IORESOURCE_MEM,
+};
+
+static struct platform_device android_ram_console = {
+	.name = "ram_console",
+	.num_resources = 1,
+	.resource = &ram_console_resource,
+};
+
+static int __init imx6x_add_ram_console(void)
+{
+	return platform_device_register(&android_ram_console);
+}
+#else
+#define imx6x_add_ram_console() do {} while (0)
+#endif
 
 static int __init caam_setup(char *__unused)
 {
@@ -868,8 +903,9 @@ static void __init ts4900_board_init(void)
 {
 	struct clk *clko, *clko2;
 	struct clk *new_parent;
-	int rate;
+	int rate, i;
 	uint8_t baseboardid;
+	struct platform_device *voutdev;
 
 	mxc_iomux_v3_setup_multiple_pads(mx6q_ts4900_pads,
 		ARRAY_SIZE(mx6q_ts4900_pads));
@@ -883,12 +919,10 @@ static void __init ts4900_board_init(void)
 	 mxc_iomux_set_gpr_register(1, 21, 1, 1);
 #endif
 
-
-   
-
 	gp_reg_id = ts4900_dvfscore_data.reg_id;
 	soc_reg_id = ts4900_dvfscore_data.soc_id;
 	mx6q_ts4900_init_uart();
+	imx6x_add_ram_console();
 
 	baseboardid = detect_baseboard();
 	printk(KERN_INFO "Baseboard ID: 0x%X\n", baseboardid);
@@ -896,7 +930,7 @@ static void __init ts4900_board_init(void)
 
 	imx6q_add_vdoa();
 	if((baseboardid & ~0xc0) == 0x2)
-	{	   
+	{
 		printk(KERN_INFO "Baseboard: TS-8390\n");
 
 		
@@ -905,9 +939,21 @@ static void __init ts4900_board_init(void)
 		gpio_direction_output(TS4900_LCD_3P3_EN, 1);
 
 		imx6q_add_ipuv3(0, &ipu_data[0]);
-		//imx6q_add_ipuv3(1, &ipu_data[0]);
+		imx6q_add_ipuv3(1, &ipu_data[1]);
+
 		imx6q_add_ipuv3fb(0, &ts4900_fb_data[0]);
 		imx6q_add_lcdif(&lcdif_data);
+
+		voutdev = imx6q_add_v4l2_output(0);
+		if (vout_mem.res_msize && voutdev) {
+			dma_declare_coherent_memory(&voutdev->dev,
+						    vout_mem.res_mbase,
+						    vout_mem.res_mbase,
+						    vout_mem.res_msize,
+						    (DMA_MEMORY_MAP |
+						     DMA_MEMORY_EXCLUSIVE));
+		}
+
 					
 		// Add SPI GPIO/ads7846 for touchscreen
 		platform_device_register(&ts8390_spi_pdevice);
@@ -1003,6 +1049,9 @@ static void __init ts4900_board_init(void)
 
 	imx6q_add_dvfs_core(&ts4900_dvfscore_data);
 
+	imx6q_add_ion(0, &imx_ion_data,
+		sizeof(imx_ion_data) + sizeof(struct ion_platform_heap));
+
 	/*
 	ret = gpio_request_array(mx6q_ts4900_flexcan_gpios,
 			ARRAY_SIZE(mx6q_ts4900_flexcan_gpios));
@@ -1036,10 +1085,6 @@ static void __init ts4900_board_init(void)
 
 	/* Add PCIe RC interface support */
 	imx6q_add_pcie(&mx6_ts4900_pcie_data);
-	if (cpu_is_mx6dl()) {
-		/*mxc_iomux_v3_setup_multiple_pads(mx6dl_arm2_elan_pads,
-						ARRAY_SIZE(mx6dl_arm2_elan_pads));*/
-	}
 
 	imx6_add_armpmu();
 	imx6q_add_perfmon(0);
@@ -1076,13 +1121,57 @@ static struct sys_timer ts4900_timer = {
 static void __init ts4900_reserve(void)
 {
 	phys_addr_t phys;
-#if defined(CONFIG_MXC_GPU_VIV) || defined(CONFIG_MXC_GPU_VIV_MODULE)
+	int i, fb0_reserved = 0, fb_array_size;
 
+	/*
+	 * Reserve primary framebuffer memory if its base address
+	 * is set by kernel command line.
+	 */
+	fb_array_size = ARRAY_SIZE(ts4900_fb_data);
+	if (fb_array_size > 0 && ts4900_fb_data[0].res_base[0] &&
+	    ts4900_fb_data[0].res_size[0]) {
+		if (ts4900_fb_data[0].res_base[0] > SZ_2G)
+			printk(KERN_INFO"UI Performance downgrade with FB phys address %x!\n",
+			    ts4900_fb_data[0].res_base[0]);
+		memblock_reserve(ts4900_fb_data[0].res_base[0],
+				 ts4900_fb_data[0].res_size[0]);
+		memblock_remove(ts4900_fb_data[0].res_base[0],
+				ts4900_fb_data[0].res_size[0]);
+		ts4900_fb_data[0].late_init = true;
+		//ipu_data[ldb_data.ipu_id].bypass_reset = true;
+		fb0_reserved = 1;
+	}
+	for (i = fb0_reserved; i < fb_array_size; i++)
+		if (ts4900_fb_data[i].res_size[0]) {
+			/* Reserve for other background buffer. */
+			phys = memblock_alloc_base(ts4900_fb_data[i].res_size[0],
+						SZ_4K, SZ_2G);
+			memblock_remove(phys, ts4900_fb_data[i].res_size[0]);
+			ts4900_fb_data[i].res_base[0] = phys;
+		}
+
+#ifdef CONFIG_ANDROID_RAM_CONSOLE
+	phys = memblock_alloc_base(SZ_1M, SZ_4K, SZ_1G);
+	memblock_remove(phys, SZ_1M);
+	memblock_free(phys, SZ_1M);
+	ram_console_resource.start = phys;
+	ram_console_resource.end   = phys + SZ_1M - 1;
+#endif
+
+#if defined(CONFIG_MXC_GPU_VIV) || defined(CONFIG_MXC_GPU_VIV_MODULE)
 	if (imx6q_gpu_pdata.reserved_mem_size) {
 		phys = memblock_alloc_base(imx6q_gpu_pdata.reserved_mem_size,
-					   SZ_4K, SZ_1G);
+					   SZ_4K, SZ_2G);
 		memblock_remove(phys, imx6q_gpu_pdata.reserved_mem_size);
 		imx6q_gpu_pdata.reserved_mem_base = phys;
+	}
+#endif
+
+#if defined(CONFIG_ION)
+	if (imx_ion_data.heaps[0].size) {
+		phys = memblock_alloc(imx_ion_data.heaps[0].size, SZ_4K);
+		memblock_remove(phys, imx_ion_data.heaps[0].size);
+		imx_ion_data.heaps[0].base = phys;
 	}
 #endif
 
@@ -1094,12 +1183,46 @@ static void __init ts4900_reserve(void)
 	}
 }
 
+static void __init fixup_mxc_board(struct machine_desc *desc, struct tag *tags,
+				   char **cmdline, struct meminfo *mi)
+{
+	char *str;
+	struct tag *t;
+	int i = 0;
+	struct ipuv3_fb_platform_data *pdata_fb = ts4900_fb_data;
+
+	for_each_tag(t, tags) {
+		if (t->hdr.tag == ATAG_CMDLINE) {
+			str = t->u.cmdline.cmdline;
+			str = strstr(str, "fbmem=");
+			if (str != NULL) {
+				str += 6;
+				pdata_fb[i++].res_size[0] = memparse(str, &str);
+				while (*str == ',' &&
+					i < ARRAY_SIZE(ts4900_fb_data)) {
+					str++;
+					pdata_fb[i++].res_size[0] = memparse(str, &str);
+				}
+			}
+			/* GPU reserved memory */
+			str = t->u.cmdline.cmdline;
+			str = strstr(str, "gpumem=");
+			if (str != NULL) {
+				str += 7;
+				imx6q_gpu_pdata.reserved_mem_size = memparse(str, &str);
+			}
+			break;
+		}
+	}
+}
+
 /*
  * initialize __mach_desc_MX6Q_TS4900 data structure.
  */
 MACHINE_START(TS4900, "Freescale i.MX 6Quad TS-4900 Board")
 	/* Maintainer: Technologic Systems */
 	.boot_params = MX6_PHYS_OFFSET + 0x100,
+	.fixup = fixup_mxc_board,
 	.map_io = mx6_map_io,
 	.init_irq = mx6_init_irq,
 	.init_machine = ts4900_board_init,

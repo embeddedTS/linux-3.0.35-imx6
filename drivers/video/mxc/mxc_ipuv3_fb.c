@@ -1030,6 +1030,10 @@ static int mxcfb_ioctl(struct fb_info *fbi, unsigned int cmd, unsigned long arg)
 	int __user *argp = (void __user *)arg;
 	struct mxcfb_info *mxc_fbi = (struct mxcfb_info *)fbi->par;
 
+	// Temp workaround for andriod vsync
+	if(cmd == 0x40044620)
+		cmd = MXCFB_WAIT_FOR_VSYNC;
+
 	switch (cmd) {
 	case MXCFB_SET_GBL_ALPHA:
 		{
