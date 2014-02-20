@@ -33,6 +33,8 @@
 #include <linux/regulator/fixed.h>
 #include <linux/spi/ads7846.h>
 
+#include <linux/wl12xx.h>
+
 #include <mach/common.h>
 #include <mach/hardware.h>
 #include <mach/mxc_dvfs.h>
@@ -54,6 +56,7 @@
 #include "devices-imx6q.h"
 #include "crm_regs.h"
 #include "cpu_op-mx6.h"
+
 
 static iomux_v3_cfg_t mx6q_ts4900_pads[] = {
 	/* WIFI */
@@ -268,6 +271,9 @@ static iomux_v3_cfg_t mx6q_ts4900_pads[] = {
 #define TS8390_SPI_CSN		IMX_GPIO_NR(3, 12)
 #define TS8390_PENDOWN 		IMX_GPIO_NR(3, 11)
 #define TS8390_EN_SPKR 		IMX_GPIO_NR(5, 30)
+
+#define WIFI_IRQ_PIN        IMX_GPIO_NR(1, 26)
+
 
 #define IOMUX_OBSRV_MUX1_OFFSET	0x3c
 #define OBSRV_MUX1_MASK			0x3f
@@ -597,7 +603,7 @@ static int ads7846_get_pendown_state(void)
 	return !gpio_get_value(TS8390_PENDOWN);
 }*/
 
-static struct ads7846_platform_data ts8390_ads7846_platform_data __initdata = {
+static struct ads7846_platform_data ts8390_ads7846_platform_data  = {
    
    .model      = 7843,
 	.x_min			= 150,
@@ -652,6 +658,7 @@ static struct imx_vout_mem vout_mem __initdata = {
 	.res_msize = SZ_128M,
 };
 
+
 static const struct pm_platform_data mx6q_ts4900_pm_data __initconst = {
 	.name = "imx_pm",
 };
@@ -695,13 +702,15 @@ static struct fixed_voltage_config ts4900_vcc_reg_config = {
 static struct platform_device ts4900_vmmc_reg_devices[] = {
    {   
       .name	= "reg-fixed-voltage",
-      .id	= 3,
+      .id	= 0,
       .dev	= {
-         .platform_data = &ts4900_vmmc_reg_config,
+         .platform_data = &ts4900_vmmc_reg_config,         
       }
-   }, {   
+   }, 
+   
+   {   
       .name	= "reg-fixed-voltage",
-      .id	= 4,
+      .id	= 1,
       .dev	= {
          .platform_data = &ts4900_vcc_reg_config,
       }
@@ -788,6 +797,12 @@ static struct mxc_dvfs_platform_data ts4900_dvfscore_data = {
 	.upcnt_val = 10,
 	.dncnt_val = 10,
 	.delay_time = 80,
+};
+
+
+struct wl12xx_platform_data ts4900_wlan_data __initdata = {   
+	.irq = gpio_to_irq(WIFI_IRQ_PIN),
+	.board_ref_clock = WL12XX_REFCLOCK_38_XTAL,   
 };
 
 
@@ -932,7 +947,6 @@ static void __init ts4900_board_init(void)
 	if((baseboardid & ~0xc0) == 0x2)
 	{
 		printk(KERN_INFO "Baseboard: TS-8390\n");
-
 		
 		// Enable LCD power
 		gpio_request(TS4900_LCD_3P3_EN, "lcd-3p3-en");
@@ -954,7 +968,6 @@ static void __init ts4900_board_init(void)
 						     DMA_MEMORY_EXCLUSIVE));
 		}
 
-					
 		// Add SPI GPIO/ads7846 for touchscreen
 		platform_device_register(&ts8390_spi_pdevice);
 		spi_register_board_info(ts8390_spi_devices,
@@ -996,7 +1009,7 @@ static void __init ts4900_board_init(void)
 	imx6q_add_imx_i2c(2, &mx6q_ts4900_i2c_data);
 	i2c_register_board_info(0, mxc_i2c0_board_info,
 			ARRAY_SIZE(mxc_i2c0_board_info));
-
+	
 	imx6q_add_anatop_thermal_imx(1, &mx6q_ts4900_anatop_thermal_data);
 
 	if (enet_to_gpio_6)
@@ -1010,7 +1023,6 @@ static void __init ts4900_board_init(void)
 	imx6_init_fec(fec_data);
 
 	imx6q_add_pm_imx(0, &mx6q_ts4900_pm_data);
-
 	/* Move sd4 to first because sd4 connect to emmc.
 	   Mfgtools want emmc is mmcblk0 and other sd card is mmcblk1.
 	*/
@@ -1030,8 +1042,10 @@ static void __init ts4900_board_init(void)
 	}
 	imx6q_add_vpu();
 	//imx6q_init_audio();
+
 	platform_device_register(&ts4900_vmmc_reg_devices[0]);
-	platform_device_register(&ts4900_vmmc_reg_devices[1]);
+   platform_device_register(&ts4900_vmmc_reg_devices[1]); 
+
 	imx_asrc_data.asrc_core_clk = clk_get(NULL, "asrc_clk");
 	imx_asrc_data.asrc_audio_clk = clk_get(NULL, "asrc_serial_clk");
 	imx6q_add_asrc(&imx_asrc_data);
@@ -1049,6 +1063,9 @@ static void __init ts4900_board_init(void)
 
 	imx6q_add_dvfs_core(&ts4900_dvfscore_data);
 
+	if (wl12xx_set_platform_data(&ts4900_wlan_data))
+		pr_err("error setting wl12xx data\n");	
+					
 	imx6q_add_ion(0, &imx_ion_data,
 		sizeof(imx_ion_data) + sizeof(struct ion_platform_heap));
 
@@ -1091,6 +1108,8 @@ static void __init ts4900_board_init(void)
 	imx6q_add_perfmon(1);
 	imx6q_add_perfmon(2);
 
+	
+	
 	// Default to green on, red off
 	gpio_request(TS4900_GREEN_LED, "status-led");
 	gpio_request(TS4900_RED_LED, "status-led");
