@@ -495,7 +495,7 @@ static struct fixed_voltage_config ts4900_vcc_reg_config = {
 static struct platform_device ts4900_vmmc_reg_devices[] = {
    {   
       .name	= "reg-fixed-voltage",
-      .id	= 0,
+      .id	= 2,
       .dev	= {
          .platform_data = &ts4900_vmmc_reg_config,         
       }
@@ -503,7 +503,7 @@ static struct platform_device ts4900_vmmc_reg_devices[] = {
    
    {   
       .name	= "reg-fixed-voltage",
-      .id	= 1,
+      .id	= 3,
       .dev	= {
          .platform_data = &ts4900_vcc_reg_config,
       }
