@@ -94,9 +94,9 @@ static iomux_v3_cfg_t mx6q_ts4900_pads[] = {
 	MX6Q_PAD_GPIO_8__UART2_RXD,
 	MX6Q_PAD_SD4_DAT6__UART2_CTS,
 
-	/* COM3 - NC on P1 */
-	/*MX6Q_PAD_SD4_CMD__UART3_TXD,
-	MX6Q_PAD_EIM_D27__UART2_RXD,*/
+	/* COM3 */
+	MX6Q_PAD_EIM_D24__UART3_TXD,
+	MX6Q_PAD_EIM_D25__UART3_RXD,
 
 	/* COM4 */
 	MX6Q_PAD_KEY_COL0__UART4_TXD,
@@ -126,7 +126,8 @@ static iomux_v3_cfg_t mx6q_ts4900_pads[] = {
 	MX6Q_PAD_CSI0_DAT8__ECSPI2_SCLK,
 	MX6Q_PAD_CSI0_DAT9__ECSPI2_MOSI,
 	MX6Q_PAD_CSI0_DAT10__ECSPI2_MISO,
-	MX6Q_PAD_CSI0_DAT11__ECSPI2_SS0,
+	MX6Q_PAD_CSI0_DAT11__GPIO_5_29,
+	MX6Q_PAD_CSI0_DAT16__GPIO_6_2,
 
 	/* ENET */
 	MX6Q_PAD_ENET_MDIO__ENET_MDIO,
@@ -145,7 +146,7 @@ static iomux_v3_cfg_t mx6q_ts4900_pads[] = {
 	MX6Q_PAD_RGMII_RD3__ENET_RGMII_RD3,
 	MX6Q_PAD_RGMII_RX_CTL__ENET_RGMII_RX_CTL,
 	MX6Q_PAD_ENET_TX_EN__GPIO_1_28,		/* RGMII Interrupt */
-	//MX6Q_PAD_DI0_PIN4__GPIO_4_20,		/* RGMII reset */
+	MX6Q_PAD_DI0_PIN4__GPIO_4_20,		/* RGMII reset */
 
 	/* DISPLAY */
 	MX6Q_PAD_EIM_A19__GPIO_2_19, /* EN_LCD_3.3V */
@@ -196,7 +197,7 @@ static iomux_v3_cfg_t mx6q_ts4900_pads[] = {
 	MX6Q_PAD_KEY_ROW3__I2C2_SDA,
 
 	/* FPGA */
-	//MX6Q_PAD_GPIO_3__ANATOP_ANATOP_24M_OUT,
+	MX6Q_PAD_GPIO_3__ANATOP_ANATOP_24M_OUT,
 
 	/* USB */
 	MX6Q_PAD_GPIO_1__USBOTG_ID,
@@ -204,7 +205,7 @@ static iomux_v3_cfg_t mx6q_ts4900_pads[] = {
 
 	/* GPIO */
 	MX6Q_PAD_GPIO_2__GPIO_1_2, // Red LED
-	MX6Q_PAD_GPIO_3__GPIO_1_3, // Green LED
+	MX6Q_PAD_EIM_CS1__GPIO_2_24, // Green LED
 	MX6Q_PAD_GPIO_4__GPIO_1_4,
 	MX6Q_PAD_GPIO_5__GPIO_1_5,
 	MX6Q_PAD_GPIO_6__GPIO_1_6,
@@ -259,11 +260,13 @@ static iomux_v3_cfg_t mx6q_ts4900_pads[] = {
 #define TS4900_EN_USB_5V 	IMX_GPIO_NR(2, 22)
 #define TS4900_ECSPI1_CS1	IMX_GPIO_NR(3, 19)
 
-#define TS4900_GREEN_LED	IMX_GPIO_NR(1, 3)
+#define TS4900_GREEN_LED	IMX_GPIO_NR(2, 24)
 #define TS4900_RED_LED		IMX_GPIO_NR(1, 2)
 #define TS4900_MODE2		IMX_GPIO_NR(2, 26)
 #define TS4900_BD_ID_DATA	IMX_GPIO_NR(2, 25)
 #define TS4900_LCD_3P3_EN	IMX_GPIO_NR(2, 19)
+#define TS4900_ECSPI2_FPGA	IMX_GPIO_NR(6, 2)
+#define TS4900_ECSPI2_CS1	IMX_GPIO_NR(5, 29)
 
 #define TS8390_SPI_CLK		IMX_GPIO_NR(3, 15)
 #define TS8390_SPI_MOSI		IMX_GPIO_NR(3, 14)
@@ -271,9 +274,7 @@ static iomux_v3_cfg_t mx6q_ts4900_pads[] = {
 #define TS8390_SPI_CSN		IMX_GPIO_NR(3, 12)
 #define TS8390_PENDOWN 		IMX_GPIO_NR(3, 11)
 #define TS8390_EN_SPKR 		IMX_GPIO_NR(5, 30)
-
 #define WIFI_IRQ_PIN        IMX_GPIO_NR(1, 26)
-
 
 #define IOMUX_OBSRV_MUX1_OFFSET	0x3c
 #define OBSRV_MUX1_MASK			0x3f
@@ -369,50 +370,51 @@ static const struct anatop_thermal_platform_data
 
 static void imx6q_ts4900_usbotg_vbus(bool on)
 {
-	/*if (on)
-		gpio_set_value(MX6Q_SABRELITE_USB_OTG_PWR, 1);
-	else
-		gpio_set_value(MX6Q_SABRELITE_USB_OTG_PWR, 0);*/
+
 }
+
+static const struct imxuart_platform_data ts4900_uart2_data __initconst = {
+	.flags      = IMXUART_HAVE_RTSCTS,
+	.dma_req_rx = MX6Q_DMA_REQ_UART2_RX,
+	.dma_req_tx = MX6Q_DMA_REQ_UART2_TX,
+};
+
+static const struct imxuart_platform_data ts4900_uart4_data __initconst = {
+	.flags      = IMXUART_HAVE_RTSCTS,
+	.dma_req_rx = MX6Q_DMA_REQ_UART4_RX,
+	.dma_req_tx = MX6Q_DMA_REQ_UART4_TX,
+};
 
 static inline void mx6q_ts4900_init_uart(void)
 {
 	imx6q_add_imx_uart(0, NULL);
 	imx6q_add_imx_uart(1, NULL);
-	imx6q_add_imx_uart(2, NULL);
+	imx6q_add_imx_uart(2, &ts4900_uart2_data);
 	imx6q_add_imx_uart(3, NULL);
-	imx6q_add_imx_uart(4, NULL);
-}
-
-static int mx6q_ts4900_fec_phy_init(struct phy_device *phydev)
-{
-	///* prefer master mode, disable 1000 Base-T capable */
-	//phy_write(phydev, 0x9, 0x1c00);
-//
-	///* min rx data delay */
-	//phy_write(phydev, 0x0b, 0x8105);
-	//phy_write(phydev, 0x0c, 0x0000);
-//
-	///* max rx/tx clock delay, min rx/tx control delay */
-	//phy_write(phydev, 0x0b, 0x8104);
-	//phy_write(phydev, 0x0c, 0xf0f0);
-	//phy_write(phydev, 0x0b, 0x104);
-
-	return 0;
+	imx6q_add_imx_uart(4, &ts4900_uart4_data);
 }
 
 static struct fec_platform_data fec_data __initdata = {
-	.init = mx6q_ts4900_fec_phy_init,
 	.phy = PHY_INTERFACE_MODE_RGMII,
 };
 
-static int mx6q_ts4900_spi_cs[] = {
+static int ts4900_ecspi1_cs[] = {
 	TS4900_ECSPI1_CS1,
 };
 
-static const struct spi_imx_master mx6q_ts4900_spi_data __initconst = {
-	.chipselect     = mx6q_ts4900_spi_cs,
-	.num_chipselect = ARRAY_SIZE(mx6q_ts4900_spi_cs),
+static int ts4900_ecspi2_cs[] = {
+	TS4900_ECSPI2_FPGA,
+	TS4900_ECSPI2_CS1,
+};
+
+static const struct spi_imx_master ts4900_ecspi1_spi_data __initconst = {
+	.chipselect     = ts4900_ecspi1_cs,
+	.num_chipselect = ARRAY_SIZE(ts4900_ecspi1_cs),
+};
+
+static const struct spi_imx_master ts4900_ecspi2_spi_data __initconst = {
+	.chipselect     = ts4900_ecspi2_cs,
+	.num_chipselect = ARRAY_SIZE(ts4900_ecspi2_cs),
 };
 
 static struct imxi2c_platform_data mx6q_ts4900_i2c_data = {
@@ -641,13 +643,12 @@ static struct spi_board_info ts8390_spi_devices[] __initdata = {
 	{
 		.modalias       = "ads7846",
 		.max_speed_hz   = 1000,
-		.bus_num        = 1,
+		.bus_num        = 3,
 		.platform_data  = &ts8390_ads7846_platform_data,
 		.irq            = gpio_to_irq(TS8390_PENDOWN),
 		.controller_data = (void*)TS8390_SPI_CSN,
 	},
 };
-
 
 struct imx_vout_mem {
 	resource_size_t res_mbase;
@@ -681,7 +682,6 @@ static struct fixed_voltage_config ts4900_vmmc_reg_config = {
 	.init_data		= &ts4900_vmmc_init,
 };
 
-
 static struct regulator_consumer_supply ts4900_vcc_consumers[] = {	
 	REGULATOR_SUPPLY("vcc", "spi1.0"),
 };
@@ -697,7 +697,6 @@ static struct fixed_voltage_config ts4900_vcc_reg_config = {
 	.gpio			= -1,
 	.init_data		= &ts4900_vcc_init,
 };
-
 
 static struct platform_device ts4900_vmmc_reg_devices[] = {
    {   
@@ -716,7 +715,6 @@ static struct platform_device ts4900_vmmc_reg_devices[] = {
       }
    },
 };
-
 
 static struct regulator_consumer_supply sgtl5000_ts4900_consumer_vdda = {
 	.supply = "VDDA",
@@ -939,6 +937,9 @@ static void __init ts4900_board_init(void)
 	mx6q_ts4900_init_uart();
 	imx6x_add_ram_console();
 
+	imx6q_add_ecspi(0, &ts4900_ecspi1_spi_data);
+	imx6q_add_ecspi(1, &ts4900_ecspi2_spi_data);
+
 	baseboardid = detect_baseboard();
 	printk(KERN_INFO "Baseboard ID: 0x%X\n", baseboardid);
 	printk(KERN_INFO "Rev: %c\n", 'A' + ((baseboardid & 0xc0) >> 6));
@@ -1041,7 +1042,6 @@ static void __init ts4900_board_init(void)
 #endif
 	}
 	imx6q_add_vpu();
-	//imx6q_init_audio();
 
 	platform_device_register(&ts4900_vmmc_reg_devices[0]);
    platform_device_register(&ts4900_vmmc_reg_devices[1]); 
