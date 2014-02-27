@@ -14,6 +14,7 @@
 #include <linux/spi/spi_gpio.h>
 #include <linux/spi/flash.h>
 #include <linux/i2c.h>
+#include <linux/i2c-gpio.h>
 #include <linux/ata.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/map.h>
