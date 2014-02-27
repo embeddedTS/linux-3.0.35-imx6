@@ -493,7 +493,7 @@ static struct fixed_voltage_config ts4900_vmmc_reg_config = {
 };
 
 static struct regulator_consumer_supply ts4900_vcc_consumers[] = {	
-	REGULATOR_SUPPLY("vcc", "spi1.0"),
+	REGULATOR_SUPPLY("vcc", "spi2.0"),
 };
 
 static struct regulator_init_data ts4900_vcc_init = {   
@@ -827,9 +827,6 @@ static void __init ts4900_board_init(void)
 	if (1 == caam_enabled)
 		imx6q_add_imx_caam();
 
-	imx6q_add_imx_i2c(0, &mx6q_ts4900_i2c_data);
-	imx6q_add_imx_i2c(1, &mx6q_ts4900_i2c_data);
-	imx6q_add_imx_i2c(2, &mx6q_ts4900_i2c_data);
 	i2c_register_board_info(0, mxc_i2c0_board_info,
 			ARRAY_SIZE(mxc_i2c0_board_info));
 	
