@@ -78,6 +78,8 @@
 #define TS8390_SPI_CSN		IMX_GPIO_NR(3, 12)
 #define TS8390_PENDOWN 		IMX_GPIO_NR(3, 11)
 #define TS8390_EN_SPKR 		IMX_GPIO_NR(5, 30)
+#define TS8390_ADC_SDA		IMX_GPIO_NR(6, 31)
+#define TS8390_ADC_SCL		IMX_GPIO_NR(2, 20)
 #define WIFI_IRQ_PIN        IMX_GPIO_NR(1, 26)
 
 #define IOMUX_OBSRV_MUX1_OFFSET	0x3c
@@ -444,6 +446,20 @@ static struct spi_board_info ts8390_spi_devices[] __initdata = {
 	},
 };
 
+static struct i2c_gpio_platform_data ts8390_adc_pdata = {
+	.sda_pin			= TS8390_ADC_SDA,
+	.sda_is_open_drain	= 0,
+	.scl_pin			= TS8390_ADC_SCL,
+	.scl_is_open_drain	= 0,
+	.udelay				= 2,
+};
+
+static struct platform_device ts8390_adc_device = {
+	.name			= "i2c-gpio",
+	.id				= 3,
+	.dev.platform_data	= &ts8390_adc_pdata,
+};
+
 struct imx_vout_mem {
 	resource_size_t res_mbase;
 	resource_size_t res_msize;
@@ -452,7 +468,6 @@ struct imx_vout_mem {
 static struct imx_vout_mem vout_mem __initdata = {
 	.res_msize = SZ_128M,
 };
-
 
 static const struct pm_platform_data mx6q_ts4900_pm_data __initconst = {
 	.name = "imx_pm",
@@ -735,8 +750,13 @@ static void __init ts4900_board_init(void)
 	soc_reg_id = ts4900_dvfscore_data.soc_id;
 	mx6q_ts4900_init_uart();
 	imx6x_add_ram_console();
+
 	imx6q_add_ecspi(0, &ts4900_ecspi1_spi_data);
 	imx6q_add_ecspi(1, &ts4900_ecspi2_spi_data);
+	
+	imx6q_add_imx_i2c(0, &mx6q_ts4900_i2c_data);
+	imx6q_add_imx_i2c(1, &mx6q_ts4900_i2c_data);
+	imx6q_add_imx_i2c(2, &mx6q_ts4900_i2c_data);
 
 	baseboardid = detect_baseboard();
 	printk(KERN_INFO "Baseboard ID: 0x%X\n", baseboardid);
@@ -771,6 +791,9 @@ static void __init ts4900_board_init(void)
 		platform_device_register(&ts8390_spi_pdevice);
 		spi_register_board_info(ts8390_spi_devices,
 			ARRAY_SIZE(ts8390_spi_devices));
+
+		// Add I2C bus for onboard ADC
+		platform_device_register(&ts8390_adc_device);
 
 		imx6q_init_sgtl5000audio();
 		i2c_register_board_info(1, ts8390_i2c1_board_info,
