@@ -753,7 +753,7 @@ static void __init ts4900_board_init(void)
 
 	imx6q_add_ecspi(0, &ts4900_ecspi1_spi_data);
 	imx6q_add_ecspi(1, &ts4900_ecspi2_spi_data);
-	
+
 	imx6q_add_imx_i2c(0, &mx6q_ts4900_i2c_data);
 	imx6q_add_imx_i2c(1, &mx6q_ts4900_i2c_data);
 	imx6q_add_imx_i2c(2, &mx6q_ts4900_i2c_data);
@@ -934,8 +934,8 @@ static void __init ts4900_board_init(void)
 	// Default to green on, red off
 	gpio_request(TS4900_GREEN_LED, "status-led");
 	gpio_request(TS4900_RED_LED, "status-led");
-	gpio_direction_output(TS4900_RED_LED, 0);
-	gpio_direction_output(TS4900_GREEN_LED, 1);
+	gpio_direction_output(TS4900_RED_LED, 1);
+	gpio_direction_output(TS4900_GREEN_LED, 0);
 	gpio_free(TS4900_RED_LED);
 	gpio_free(TS4900_GREEN_LED);
 }
