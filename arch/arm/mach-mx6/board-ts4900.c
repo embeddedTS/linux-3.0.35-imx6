@@ -427,7 +427,7 @@ struct spi_gpio_platform_data ts8390_spi_pdata = {
 
 static struct platform_device ts8390_spi_pdevice = {
 	.name	= "spi_gpio",
-	.id	= 1,
+	.id	= 2,
 	.dev 	= {
 		.platform_data	= &ts8390_spi_pdata,
 	}
@@ -437,7 +437,7 @@ static struct spi_board_info ts8390_spi_devices[] __initdata = {
 	{
 		.modalias       = "ads7846",
 		.max_speed_hz   = 1000,
-		.bus_num        = 3,
+		.bus_num        = 2,
 		.platform_data  = &ts8390_ads7846_platform_data,
 		.irq            = gpio_to_irq(TS8390_PENDOWN),
 		.controller_data = (void*)TS8390_SPI_CSN,
