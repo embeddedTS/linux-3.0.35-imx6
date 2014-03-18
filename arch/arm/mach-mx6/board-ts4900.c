@@ -79,8 +79,8 @@
 #define TS8390_SPI_CSN		IMX_GPIO_NR(3, 12)
 #define TS8390_PENDOWN 		IMX_GPIO_NR(3, 11)
 #define TS8390_EN_SPKR 		IMX_GPIO_NR(5, 30)
-#define TS8390_ADC_SDA		IMX_GPIO_NR(6, 31)
-#define TS8390_ADC_SCL		IMX_GPIO_NR(2, 20)
+#define TS8390_ADC_SCL		IMX_GPIO_NR(6, 31)
+#define TS8390_ADC_SDA		IMX_GPIO_NR(2, 20)
 #define WIFI_IRQ_PIN        IMX_GPIO_NR(1, 26)
 
 #define IOMUX_OBSRV_MUX1_OFFSET	0x3c
@@ -406,19 +406,18 @@ static struct ion_platform_data imx_ion_data = {
 };
 
 static struct ads7846_platform_data ts8390_ads7846_platform_data  = {
-	.model      = 7843,
-	.x_min			= 150,
-	.x_max			= 3830,
-	.y_min			= 190,
-	.y_max			= 3830,
-	.x_plate_ohms		= 400,
-	.y_plate_ohms		= 400,	
+	.model      		= 7843,
 	.vref_delay_usecs	= 100,
-	.pressure_max	= 255,
-	.debounce_max	= 20,
-	.debounce_tol	= 6,
-	.debounce_rep	= 3,
-	.gpio_pendown	= TS8390_PENDOWN,
+	.settle_delay_usecs = 1000,
+	.penirq_recheck_delay_usecs = 500,
+	.x_plate_ohms		= 668,
+	.y_plate_ohms		= 258,
+	.vref_mv			= 3300,
+	.swap_xy		    = 1,
+	.keep_vref_on		= 1,
+	.pressure_max		= 10000,
+	.pressure_min		= 5000,
+	.gpio_pendown		= TS8390_PENDOWN,
 };
 
 struct spi_gpio_platform_data ts8390_spi_pdata = {
