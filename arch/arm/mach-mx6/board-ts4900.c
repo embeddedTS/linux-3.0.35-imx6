@@ -15,6 +15,7 @@
 #include <linux/spi/flash.h>
 #include <linux/i2c.h>
 #include <linux/i2c-gpio.h>
+#include <linux/i2c/ts4900gpio.h>
 #include <linux/ata.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/map.h>
@@ -33,7 +34,6 @@
 #include <linux/regulator/machine.h>
 #include <linux/regulator/fixed.h>
 #include <linux/spi/ads7846.h>
-
 #include <linux/wl12xx.h>
 
 #include <mach/common.h>
@@ -228,10 +228,22 @@ static struct imxi2c_platform_data mx6q_ts4900_i2c_data = {
 	.bitrate = 100000,
 };
 
+static struct ts4900gpio_platform_data ts4900fpga_pdata = {
+	.bbclk12 = 0,
+	.bbclk14 = 0,
+	.bbclk25 = 0,
+	.uart2en = 1,
+	.uart4en = 1,
+};
+
 static struct i2c_board_info mxc_i2c0_board_info[] __initdata = {
 	{
 		I2C_BOARD_INFO("isl12022", 0x6f),
 	},
+	{
+		I2C_BOARD_INFO("ts4900gpio", 0x28),
+		.platform_data = &ts4900fpga_pdata,
+	}
 };
 
 static struct i2c_board_info ts8390_i2c1_board_info[] __initdata = {
