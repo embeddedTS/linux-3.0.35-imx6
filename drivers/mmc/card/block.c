@@ -40,6 +40,7 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/sd.h>
+#include <linux/mmc/sdhci.h>
 
 #include <asm/system.h>
 #include <asm/uaccess.h>
@@ -1243,6 +1244,7 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 {
 	struct mmc_blk_data *md;
 	int devidx, ret;
+	struct sdhci_host *host;
 
 	devidx = find_first_zero_bit(dev_use, max_devices);
 	if (devidx >= max_devices)
@@ -1313,8 +1315,21 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	 * messages to tell when the card is present.
 	 */
 
-	snprintf(md->disk->disk_name, sizeof(md->disk->disk_name),
-		 "mmcblk%d%s", md->name_idx, subname ? subname : "");
+	host = mmc_priv(card->host);
+
+	if(strstr(dev_name(host->mmc->parent), "sdhci-esdhc-imx.1")) { // SD
+		snprintf(md->disk->disk_name, sizeof(md->disk->disk_name),
+		  "mmcblk%d%s", 1, subname ? subname : "");
+	} else if(strstr(dev_name(host->mmc->parent), "sdhci-esdhc-imx.2")) { // EMMC
+		snprintf(md->disk->disk_name, sizeof(md->disk->disk_name),
+		  "mmcblk%d%s", 2, subname ? subname : "");
+	} else {
+		snprintf(md->disk->disk_name, sizeof(md->disk->disk_name),
+		  "mmcblk%d%s", md->name_idx, subname ? subname : "");
+	}
+
+	/*snprintf(md->disk->disk_name, sizeof(md->disk->disk_name),
+		 "mmcblk%d%s", md->name_idx, subname ? subname : "");*/
 
 	blk_queue_logical_block_size(md->queue.queue, 512);
 	set_capacity(md->disk, size);
