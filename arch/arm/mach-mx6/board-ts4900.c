@@ -82,6 +82,7 @@
 #define TS8390_ADC_SCL		IMX_GPIO_NR(6, 31)
 #define TS8390_ADC_SDA		IMX_GPIO_NR(2, 20)
 #define WIFI_IRQ_PIN        IMX_GPIO_NR(1, 26)
+#define WIFI_WLEN           IMX_GPIO_NR(8, 14)
 
 #define IOMUX_OBSRV_MUX1_OFFSET	0x3c
 #define OBSRV_MUX1_MASK			0x3f
