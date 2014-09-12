@@ -170,6 +170,10 @@ static int wl1271_sdio_power_on(struct wl1271 *wl)
 	struct sdio_func *func = wl_to_func(wl);
 	int ret;
 
+	if (wl->set_power){
+		wl->set_power(1);
+	}
+
 	/* Make sure the card will not be powered off by runtime PM */
 	ret = pm_runtime_get_sync(&func->dev);
 	if (ret < 0 && ret != -EAGAIN)
@@ -183,6 +187,7 @@ static int wl1271_sdio_power_on(struct wl1271 *wl)
 	sdio_claim_host(func);
 	sdio_enable_func(func);
 
+
 out:
 	return ret;
 }
@@ -194,6 +199,10 @@ static int wl1271_sdio_power_off(struct wl1271 *wl)
 
 	sdio_disable_func(func);
 	sdio_release_host(func);
+
+	if (wl->set_power){
+		wl->set_power(0);
+	}
 
 	/* Runtime PM might be disabled, so power off the card manually */
 	ret = mmc_power_save_host(func->card->host);
@@ -264,6 +273,7 @@ static int __devinit wl1271_probe(struct sdio_func *func,
 	wl->ref_clock = wlan_data->board_ref_clock;
 	wl->tcxo_clock = wlan_data->board_tcxo_clock;
 	wl->platform_quirks = wlan_data->platform_quirks;
+	wl->set_power = wlan_data->set_power;
 
 	if (wl->platform_quirks & WL12XX_PLATFORM_QUIRK_EDGE_IRQ)
 		irqflags = IRQF_TRIGGER_RISING;

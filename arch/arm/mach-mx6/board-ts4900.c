@@ -157,7 +157,7 @@ static const struct esdhc_platform_data mx6q_ts4900_sd2_data __initconst = {
 	.delay_line = 0,
 	.wp_gpio = -EINVAL,
 	.cd_gpio = -EINVAL,
-	.cd_type = ESDHC_CD_NONE,
+	.cd_type = ESDHC_CD_CONTROLLER,
 };
 
 // emmc
@@ -486,6 +486,7 @@ static const struct pm_platform_data mx6q_ts4900_pm_data __initconst = {
 };
 
 static struct regulator_consumer_supply ts4900_vmmc_consumers[] = {
+	REGULATOR_SUPPLY("vmmc", "sdhci-esdhc-imx.0"),
 	REGULATOR_SUPPLY("vmmc", "sdhci-esdhc-imx.1"),
 	REGULATOR_SUPPLY("vmmc", "sdhci-esdhc-imx.2"),
 	REGULATOR_SUPPLY("vmmc", "sdhci-esdhc-imx.3"),
@@ -527,7 +528,6 @@ static struct platform_device ts4900_vmmc_reg_devices[] = {
          .platform_data = &ts4900_vmmc_reg_config,         
       }
    }, 
-   
    {   
       .name	= "reg-fixed-voltage",
       .id	= 3,
@@ -618,12 +618,24 @@ static struct mxc_dvfs_platform_data ts4900_dvfscore_data = {
 	.delay_time = 80,
 };
 
+void wl12xx_set_power (bool enable)
+{
+	int ret;
+	ret = gpio_request(WIFI_WLEN, "wifiwlen");
+	if(ret) {
+		printk(KERN_ERR "wl12xx: Could not allocate wlen: %d\n", ret);
+	} else {
+		gpio_direction_output(WIFI_WLEN, enable);
+		//gpio_set_value(WIFI_WLEN, enable);
+		gpio_free(WIFI_WLEN);
+	}
+}
 
 struct wl12xx_platform_data ts4900_wlan_data __initdata = {   
 	.irq = gpio_to_irq(WIFI_IRQ_PIN),
-	.board_ref_clock = WL12XX_REFCLOCK_38_XTAL,   
+	.board_ref_clock = WL12XX_REFCLOCK_38_XTAL,
+	.set_power = wl12xx_set_power,
 };
-
 
 static struct mxc_audio_platform_data mx6_ts4900_audio_data;
 
