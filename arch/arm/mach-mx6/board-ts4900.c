@@ -1082,7 +1082,7 @@ static void __init fixup_mxc_board(struct machine_desc *desc, struct tag *tags,
  * initialize __mach_desc_MX6Q_TS4900 data structure.
  */
 MACHINE_START(TS4900, "Freescale i.MX 6Quad TS-4900 Board")
-	/* Maintainer: Technologic Systems */
+	/* Maintainer: embeddedTS */
 	.boot_params = MX6_PHYS_OFFSET + 0x100,
 	.fixup = fixup_mxc_board,
 	.map_io = mx6_map_io,
